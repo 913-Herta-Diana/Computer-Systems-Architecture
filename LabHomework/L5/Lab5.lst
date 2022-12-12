@@ -1,0 +1,56 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit               ; tell nasm that exit exists even if we won't be defining it
+     8                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     9                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    10                                  
+    11                                  ; our data is declared here (the variables needed by our program)
+    12                                  segment data use32 class=data
+    13                                      ; ...
+    14 00000000 2B3432614033242A            s db '+', '4', '2', 'a', '@', '3', '$', '*' ; declare the string of bytes
+    15                                      l1 equ $-s ; compute the length of the string in l
+    16 00000008 21402324255E262A            p db '!','@','#','$','%','^','&','*'
+    17                                      l2 equ $-p-l1
+    18 00000010 00                      	d times 1 db 0 ; reserve l bytes for the destination string and initialize it
+    19                                      
+    20                                      
+    21                                  ; Given a character string S, obtain the string D containing all special characters (!@#$%^&*) of the string S.
+    22                                  
+    23                                  segment code use32 class=code
+    24                                      start:
+    25                                          ; ...
+    26 00000000 B908000000                      mov ecx,l1
+    27 00000005 BE00000000                      mov esi,0
+    28 0000000A BF00000000                      mov edi,0
+    29 0000000F BB00000000                      mov ebx,0
+    30 00000014 E331                            jecxz Sfarsit
+    31                                          Repeta:    
+    32 00000016 51                                  push ecx
+    33 00000017 8A86[00000000]                      mov al,[s+esi]
+    34 0000001D BF00000000                          mov edi,0
+    35 00000022 B900000000                          mov ecx,l2
+    36                                              equal:
+    37 00000027 8A9F[08000000]                          mov bl,[p+edi]
+    38 0000002D 38D8                                    cmp al,bl
+    39 0000002F 7402                                    je mutare
+    40 00000031 EB09                                    jmp urmatorul
+    41                                                  mutare:
+    42 00000033 889B[10000000]                              mov [d+ebx],bl
+    43 00000039 43                                          inc ebx
+    44 0000003A EB08                                        jmp Sari  
+    45                                                  urmatorul:
+    46 0000003C 47                                      inc edi
+    47 0000003D 83FF00                              cmp edi,l2
+    48 00000040 7402                                je Sari
+    49 00000042 E2E3                                loop equal
+    50                                          Sari:
+    51 00000044 59                              pop ecx
+    52 00000045 E2CF                            loop Repeta
+    53                                          Sfarsit:
+    54                                          ; exit(0)
+    55 00000047 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    56 00000049 FF15[00000000]                  call    [exit]       ; call exit to terminate the program

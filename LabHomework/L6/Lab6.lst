@@ -1,0 +1,97 @@
+     1                                  bits 32
+     2                                  
+     3                                  global start        
+     4                                  
+     5                                  extern exit
+     6                                  import exit msvcrt.dll
+     7                                  
+     8                                  ; 2. An array of words is given. Write an asm program in order to obtain an array of doublewords,
+     9                                  ; where each doubleword will contain each nibble unpacked on a byte (each nibble will be preceded by a 0 digit),
+    10                                  ; arranged in an ascending order within the doubleword. 
+    11                                  ; Example:
+    12                                  ; s1: 1432h, 8675h, 0ADBCh, ...
+    13                                  ; s2: 01020304h,  05060708h, 0A0B0C0Dh, ...
+    14                                  
+    15                                  segment data use32 class=data
+    16 00000000 32147586BCAD                s1 dw 1432h, 8675h, 0ADBCh
+    17                                      len_s1 equ ($-s1)/2
+    18 00000006 FFFFFFFF<rept>              s2 times len_s1 dd -1
+    19                                      tmp_len equ 4
+    20 00000012 02<rept>                    tmp times tmp_len db 2
+    21                                  
+    22                                  segment code use32 class=code
+    23                                      start:
+    24                                          ; set up the registers
+    25 00000000 FC                              cld
+    26 00000001 BE[00000000]                    mov esi, s1
+    27 00000006 BF[06000000]                    mov edi, s2
+    28 0000000B B903000000                      mov ecx, len_s1
+    29                                          
+    30 00000010 31C0                            xor eax, eax
+    31 00000012 31D2                            xor edx, edx
+    32                                      
+    33                                          ; 1. for each word in the string s1
+    34                                          step_1:
+    35 00000014 66AD                                lodsw
+    36                                              
+    37 00000016 56                                  push dword esi      ; save the registers
+    38 00000017 57                                  push dword edi
+    39 00000018 51                                  push dword ecx
+    40                                              
+    41 00000019 EB0C                                jmp step_2
+    42                                  
+    43                                            back_2:
+    44 0000001B EB2A                                jmp step_3
+    45                                              
+    46                                            back_3:
+    47 0000001D EB2A                                jmp step_4
+    48                                  
+    49                                            store:
+    50 0000001F 59                                  pop dword ecx       ; restore the registers
+    51 00000020 5F                                  pop dword edi
+    52 00000021 5E                                  pop dword esi
+    53 00000022 AB                                  stosd
+    54 00000023 E2EF                            loop step_1
+    55                                          
+    56 00000025 EB36                            jmp end_prog
+    57                                          
+    58                                          ; 2. extract the hex digits from each word
+    59                                          step_2:
+    60 00000027 BF[12000000]                        mov edi, tmp
+    61 0000002C B904000000                          mov ecx, tmp_len
+    62 00000031 66BA00F0                            mov dx, 1111000000000000b   ; set the mask
+    63                                            .loop:
+    64 00000035 50                                  push dword eax
+    65 00000036 6621D0                              and ax, dx                  ; isolate the leftmost digit
+    66                                              
+    67 00000039 66C1E80C                            shr ax, 12                  ; move to AL
+    68 0000003D AA                                  stosb                       ; store it in the string temp
+    69                                              
+    70 0000003E 58                                  pop dword eax               ; restore the word in AX
+    71 0000003F 66C1E004                            shl ax, 4                   ; move to next digit
+    72 00000043 E2F0                              loop step_2.loop
+    73 00000045 EBD4                            jmp back_2
+    74                                          
+    75                                          ; 3. arrange the extracted digits in ascending order
+    76                                          step_3:
+    77                                              ; not implemented
+    78 00000047 EBD4                            jmp back_3
+    79                                          
+    80                                          ; 4. create a doubleword from extracted digits
+    81                                          step_4:
+    82 00000049 31C0                                xor eax, eax
+    83 0000004B BE[12000000]                        mov esi, tmp
+    84 00000050 B904000000                          mov ecx, tmp_len
+    85                                  
+    86                                            .loop:
+    87 00000055 C1E008                              shl eax, 8
+    88 00000058 AC                                  lodsb
+    89 00000059 E2FA                              loop step_4.loop
+    90                                            
+    91 0000005B EBC2                              jmp store
+    92                                            
+    93                                          end_prog:
+    94                                  
+    95                                          ; exit(0)
+    96 0000005D 6A00                            push dword 0      ; push the parameter for exit onto the stack
+    97 0000005F FF15[00000000]                  call [exit]       ; call exit to terminate the program
