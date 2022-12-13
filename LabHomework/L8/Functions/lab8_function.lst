@@ -1,0 +1,44 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit               ; tell nasm that exit exists even if we won't be defining it
+     8                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     9                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    10                                  extern scanf
+    11                                  extern printf
+    12                                  import scanf msvcrt.dll
+    13                                  import printf msvcrt.dll
+    14                                  
+    15                                  ; our data is declared here (the variables needed by our program)
+    16                                  segment data use32 class=data
+    17                                      ; ...
+    18 00000000 <res 00000004>              a resd 1
+    19 00000004 <res 00000004>              b resd 1
+    20 00000008 01000000                    result dd 1
+    21 0000000C 256420256400                format db "%d %d", 0
+    22 00000012 54686520616E737765-         format2 db "The answer is %d", 0
+    22 0000001B 7220697320256400   
+    23                                  ;Read two numbers a and b (in base 10) from the keyboard and calculate a/b. This value will be stored in a variable called "result" (defined in the data segment). The values are considered in signed representation.
+    24                                  
+    25                                  segment code use32 class=code
+    26                                      start:
+    27                                          ; ...
+    28 00000000 68[04000000]                    push dword b
+    29 00000005 68[00000000]                    push dword a 
+    30 0000000A 68[0C000000]                    push dword format
+    31 0000000F FF15[00000000]                  call [scanf]
+    32 00000015 83C410                          add esp, 4*4
+    33 00000018 A1[00000000]                    mov eax, [a]
+    34 0000001D 99                              cdq
+    35 0000001E F73D[04000000]                  idiv dword[b]
+    36 00000024 A3[08000000]                    mov dword[result],eax
+    37 00000029 FF35[08000000]                  push dword [result]
+    38 0000002F 68[12000000]                    push dword format2 
+    39 00000034 FF15[00000000]                  call [printf]
+    40 0000003A 83C410                          add esp, 4*4
+    41                                          ; exit(0)
+    42 0000003D 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    43 0000003F FF15[00000000]                  call    [exit]       ; call exit to terminate the program
